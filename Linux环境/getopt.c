@@ -2,11 +2,22 @@
 #include <unistd.h>//该头文件定义了getopt函数
 #include <stdlib.h>
 
+//getopt_long函数的申明
+#define _GNU_SOURCE
+#include <getopt.h>
+
 int main(int argc,char *argv[])
 {
 	int opt;
+	struct option longopts[] = {
+		{"initialize",0,NULL,'i'},
+		{"file",1,NULL,'f'},
+		{"list",0,NULL,'l'},
+		{"restart",0,NULL,'r'},
+		{0,0,0,0}
+	};
 	//该循环用于将参数按照指定格式处理
-	while((opt = getopt(argc,argv,":if:lr")) != -1){
+	while((opt = getopt_long(argc,argv,":if:lr",longopts,NULL)) != -1){
 		switch(opt){
 			case 'i':
 			case 'l':
