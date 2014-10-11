@@ -8,37 +8,44 @@ char *menu[] = {
 	"q - quit",
 	NULL,
 };
-int getchoice(char *greet,char *choices[]);
+int getchoice(char *greet,char *choices[],FILE *in,FILE *out);
 
 int main()
 {
 	int choice = 0;
+	FILE *input;
+	FILE *output;
 	//判断是否是将信息输出到屏幕上，禁止重定向
 	if(!isatty(fileno(stdout))){
 		fprintf(stderr,"You are not a terninal!\n");
+	}
+	input = fopen("/dev/tty","r");
+	output = fopen("/dev/tty","w");
+	if(!input || !output){
+		fprintf(stderr,"Unable to open /dev/tty\n");
 		exit(1);
 	}
 	do{
-		choice = getchoice("please select an action",menu);
+		choice = getchoice("please select an action",menu,input,output);
 		printf("You have chosen:%c\n",choice);
 	}while(choice != 'q');
 	exit(0);
 }
 
-int getchoice(char *greet,char *choices[])
+int getchoice(char *greet,char *choices[],FILE *in,FILE *out)
 {
 	int chosen = 0;
 	int selected;
 	char **option;
 	do{
-		printf("Choice: %s\n",greet);
+		fprintf(out,"Choice: %s\n",greet);
 		option = choices;
 		while(*option){
-			printf("%s\n",*option);
+			fprintf(out,"%s\n",*option);
 			option++;
 		}
 		do{
-			selected = getchar();
+			selected = fgetc(in);
 		}while(selected=='\n');
 		option = choices;
 		while(*option){
@@ -49,7 +56,7 @@ int getchoice(char *greet,char *choices[])
 			option++;
 		}
 		if(!chosen){
-			printf("Incorrect choice, select again\n");
+			fprintf(out,"Incorrect choice, select again\n");
 		}
 	}while(!chosen);
 	return selected;
@@ -65,5 +72,7 @@ int getchoice(char *greet,char *choices[])
  *	Linux会暂存用户输入的内容，直到用户按下回车键，然后将用户选择的字符和紧随其后的回车符一起传递给程序，
  *	当你输完一个选项时并按下回车时，程序就调用getchar函数处理输入，而当下一次循环中，由于上一次的回车符尚未处理，
  *	再次调用getcgar函数时，它并不会等待你输入，而是直接取走上次的回车符
- *
+ * 
+ *  如果不希望程序中与用户交互部分被重定向，但允许其他的输入和输出被重定向，你就需要将与用户交互的部分与stdout、stderr分开
+ *  Linux踢狗一个特殊设备/dev/tty来解决这个问题，该设备始终指向当前终端或登录会话
  */
