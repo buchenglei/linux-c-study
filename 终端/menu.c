@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <termios.h>
 
 char *menu[] = {
 	"a - add new record",
@@ -15,6 +16,7 @@ int main()
 	int choice = 0;
 	FILE *input;
 	FILE *output;
+	struct termios init,new;
 	//判断是否是将信息输出到屏幕上，禁止重定向
 	if(!isatty(fileno(stdout))){
 		fprintf(stderr,"You are not a terninal!\n");
@@ -25,10 +27,22 @@ int main()
 		fprintf(stderr,"Unable to open /dev/tty\n");
 		exit(1);
 	}
+	tcgetattr(fileno(input),&init);
+	new=init;
+	new.c_lflag &= ~ICANON;
+	new.c_lflag &= ~ECHO;
+	new.c_cc[VMIN] = 1;
+	new.c_cc[VTIME] =0;
+	new.c_lflag &= ~ISIG;//禁用对类似ctrl+c的组合件的处理
+	if(tcsetattr(fileno(input),TCSANOW,&new)!=0){
+		fprintf(stderr,"Could not set attributes\n");
+	}
 	do{
 		choice = getchoice("please select an action",menu,input,output);
 		printf("You have chosen:%c\n",choice);
 	}while(choice != 'q');
+	//还原设置
+	tcsetattr(fileno(input),TCSANOW,&init);
 	exit(0);
 }
 
@@ -46,7 +60,7 @@ int getchoice(char *greet,char *choices[],FILE *in,FILE *out)
 		}
 		do{
 			selected = fgetc(in);
-		}while(selected=='\n');
+		}while(selected=='\n' || selected=='\r');//在非标准模式下默认的回车和换行符之间的映射已经不存在了，要对'\r'进行检查
 		option = choices;
 		while(*option){
 			if(selected == *option[0]){
